@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel COT</title>
+  <style>
+    body { background:#0b1220; color:#fff; font-family:Arial,sans-serif; padding:20px; }
+    .card { background:#111827; padding:14px; border-radius:12px; margin:10px 0; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; }
+    .baixa { background:#2563eb; }
+    .media { background:#0891b2; }
+    .alta { background:#ea580c; }
+    .critica { background:#dc2626; }
+    input,button { padding:10px; border-radius:8px; border:none; }
+    button { cursor:pointer; }
+    pre { white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Painel de Tickets COT</h1>
+  <div class="row">
+    <input id="search" placeholder="Buscar código do ticket" />
+    <button onclick="loadTicket()">Buscar</button>
+  </div>
+  <div id="tickets"></div>
+  <div id="details"></div>
+  <script>
+    const auth = 'Basic ' + btoa(prompt('Usuário do painel') + ':' + prompt('Senha do painel'));
+    async function loadTickets() {
+      const res = await fetch('/tickets', { headers: { Authorization: auth } });
+      const data = await res.json();
+      document.getElementById('tickets').innerHTML = data.map(t => `
+        <div class="card">
+          <b>${t.ticket_code || 'sem código'}</b><br>
+          <span class="badge ${t.priority || 'media'}">${t.priority || 'media'}</span>
+          <div>Status: ${t.workflow_status || 'aberto'}</div>
+          <div>Autor: ${t.author_tag || t.author_id || 'N/A'}</div>
+        </div>
+      `).join('');
+    }
+    async function loadTicket() {
+      const code = document.getElementById('search').value.trim();
+      if (!code) return;
+      const res = await fetch('/ticket/' + code, { headers: { Authorization: auth } });
+      const data = await res.json();
+      document.getElementById('details').innerHTML = `
+        <div class="card">
+          <h2>${data.ticket.ticket_code}</h2>
+          <div>Categoria: ${data.ticket.category}</div>
+          <div>Prioridade: ${data.ticket.priority}</div>
+          <div>Autor: ${data.ticket.author_tag || data.ticket.author_id}</div>
+          <div>Denunciado: ${data.ticket.accused_name || data.ticket.accused_id || 'Não identificado'}</div>
+          <h3>Mensagens</h3>
+          ${data.messages.map(m => `<pre>${m.author_tag || m.author}: ${m.content || ''}</pre>`).join('')}
+        </div>
+      `;
+    }
+    loadTickets();
+  </script>
+</body>
+</html>
